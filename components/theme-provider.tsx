@@ -47,7 +47,9 @@ function ThemeHotkey() {
         return
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // event.key can be undefined during IME composition or with some
+      // synthetic keyboard events (autofill / password managers).
+      if (!event.key || event.key.toLowerCase() !== "d") {
         return
       }
 
