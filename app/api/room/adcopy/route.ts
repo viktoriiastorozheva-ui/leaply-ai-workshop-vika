@@ -94,6 +94,7 @@ Write the three platform-specific ad variants.`
         responseMimeType: "application/json",
         responseJsonSchema: ADCOPY_JSON_SCHEMA,
         temperature: 0.8,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     })
     raw = result.text ?? ""

@@ -80,6 +80,7 @@ Reply as each persona, in order. One short reply per persona.`
         responseMimeType: "application/json",
         responseJsonSchema: ASK_JSON_SCHEMA,
         temperature: 0.75,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     })
     rawAsk = result.text ?? ""

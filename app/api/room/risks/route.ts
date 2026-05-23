@@ -84,6 +84,7 @@ Review this idea for risks.`
         responseMimeType: "application/json",
         responseJsonSchema: RISKS_JSON_SCHEMA,
         temperature: 0.4,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     })
     raw = result.text ?? ""

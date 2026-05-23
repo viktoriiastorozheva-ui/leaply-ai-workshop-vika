@@ -107,6 +107,7 @@ Re-score each persona for this new angle.`
         responseMimeType: "application/json",
         responseJsonSchema: RESCORE_JSON_SCHEMA,
         temperature: 0.6,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     })
     raw = result.text ?? ""

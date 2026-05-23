@@ -11,9 +11,9 @@ import {
 } from "@/lib/schemas/room-schema"
 
 export const runtime = "nodejs"
-// Two sequential Gemini calls (research + synthesis) can take 30–60s.
-// Vercel Hobby allows up to 60s on the Node.js runtime.
-export const maxDuration = 60
+// Two sequential Gemini calls (research with googleSearch + synthesis) can
+// take 60–120s on cold start. Vercel Hobby + Fluid Compute allows up to 300s.
+export const maxDuration = 300
 
 const SYNTHESIS_SYSTEM_PROMPT = `You are THE ROOM — a research-grounded marketing reality check.
 
@@ -162,6 +162,9 @@ Search broadly. Return rich research notes — include verbatim quotes and where
       config: {
         tools: [{ googleSearch: {} }],
         temperature: 0.7,
+        // Disable Gemini's internal "thinking" tokens to cut ~30-50% off
+        // wall-clock time. Quality is fine for grounded research.
+        thinkingConfig: { thinkingBudget: 0 },
       },
     })
 
@@ -237,6 +240,7 @@ Output strict JSON only.`
         systemInstruction: SYNTHESIS_SYSTEM_PROMPT,
         responseMimeType: "application/json",
         responseJsonSchema: ROOM_JSON_SCHEMA,
+        thinkingConfig: { thinkingBudget: 0 },
         temperature: 0.7,
       },
     })
