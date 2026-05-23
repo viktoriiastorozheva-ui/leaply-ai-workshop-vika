@@ -30,11 +30,13 @@ export function emitRunsChanged() {
   }
 }
 
-// Module-level cache so useSyncExternalStore.getSnapshot returns a stable
-// reference between renders — required for the hook to avoid infinite loops.
-// We refresh the cache only when an actual change event fires.
+// Module-level caches so useSyncExternalStore's getSnapshot/getServerSnapshot
+// return stable references between renders — required for the hook to avoid
+// infinite loops. We refresh the client cache only when an actual change
+// event fires. The server snapshot is a frozen empty array, also stable.
 let cachedRuns: SavedRun[] = []
 let cacheInitialized = false
+const EMPTY_RUNS: SavedRun[] = Object.freeze([]) as unknown as SavedRun[]
 
 function getSnapshot(): SavedRun[] {
   if (!cacheInitialized && typeof window !== "undefined") {
@@ -45,7 +47,7 @@ function getSnapshot(): SavedRun[] {
 }
 
 function getServerSnapshot(): SavedRun[] {
-  return []
+  return EMPTY_RUNS
 }
 
 function subscribe(callback: () => void) {
