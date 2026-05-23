@@ -28,6 +28,11 @@ export default function Page() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RoomResponse | null>(null)
+  // Snapshot the idea + audience that produced the current result, so that
+  // follow-up "Ask the room" calls use the exact same context even if the
+  // user edits the form afterwards.
+  const [submittedIdea, setSubmittedIdea] = useState("")
+  const [submittedAudience, setSubmittedAudience] = useState("")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -50,6 +55,8 @@ export default function Page() {
       }
 
       setResult(data as RoomResponse)
+      setSubmittedIdea(idea)
+      setSubmittedAudience(audience)
     } catch {
       setError(
         "Couldn't reach the server. Check your internet connection and try again."
@@ -132,7 +139,13 @@ export default function Page() {
         </Alert>
       )}
 
-      {result && !loading && <RoomResults result={result} />}
+      {result && !loading && (
+        <RoomResults
+          result={result}
+          idea={submittedIdea}
+          audience={submittedAudience}
+        />
+      )}
 
       <footer className="mt-16 text-center text-xs text-muted-foreground">
         Powered by Gemini · Built with Next.js

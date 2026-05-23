@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { AskTheRoom } from "@/components/the-room/ask-the-room"
 import { PersonaCards } from "@/components/the-room/persona-cards"
 import { SearchSuggestions } from "@/components/the-room/search-suggestions"
 import { SharperAngles } from "@/components/the-room/sharper-angles"
@@ -12,7 +13,15 @@ import type { RoomResponse } from "@/lib/schemas/room-schema"
 
 const HIGHLIGHT_MS = 1800
 
-export function RoomResults({ result }: { result: RoomResponse }) {
+export function RoomResults({
+  result,
+  idea,
+  audience,
+}: {
+  result: RoomResponse
+  idea: string
+  audience: string
+}) {
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null)
 
   function jumpToVoice(voiceIndex: number) {
@@ -72,6 +81,13 @@ export function RoomResults({ result }: { result: RoomResponse }) {
           onJumpToVoice={jumpToVoice}
         />
       </section>
+
+      <AskTheRoom
+        key={result.personas.map((p) => p.name).join("|")}
+        personas={result.personas}
+        idea={idea}
+        audience={audience}
+      />
 
       <SearchSuggestions data={result.groundingMetadata} />
     </div>

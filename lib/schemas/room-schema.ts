@@ -124,6 +124,60 @@ export type RoomResponse = SynthesisResponse & {
   groundingMetadata: GroundingMetadata
 }
 
+// ----- Ask-the-room follow-up Q&A -----
+
+export const AskRequestSchema = z.object({
+  question: z
+    .string()
+    .min(3, "Question is too short.")
+    .max(500, "Question is too long (max 500 characters)."),
+  idea: z.string().max(2000),
+  audience: z.string().max(2000),
+  personas: z.array(PersonaSchema).min(1).max(3),
+})
+export type AskRequest = z.infer<typeof AskRequestSchema>
+
+export const AskReplySchema = z.object({
+  persona_name: z.string(),
+  color: PersonaColor,
+  reply: z.string(),
+})
+export type AskReply = z.infer<typeof AskReplySchema>
+
+export const AskResponseSchema = z.object({
+  replies: z.array(AskReplySchema).min(1),
+})
+export type AskResponse = z.infer<typeof AskResponseSchema>
+
+export const ASK_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    replies: {
+      type: "array",
+      description:
+        "One in-character reply per persona, in the order they were provided.",
+      items: {
+        type: "object",
+        properties: {
+          persona_name: {
+            type: "string",
+            description:
+              "Must exactly match the persona's name from the input.",
+          },
+          color: { type: "string", enum: ["green", "yellow", "red"] },
+          reply: {
+            type: "string",
+            description:
+              "1-2 sentence reaction in the persona's voice. Do not break character. Do not invent biographical facts not implied by their context.",
+          },
+        },
+        required: ["persona_name", "color", "reply"],
+      },
+    },
+  },
+  required: ["replies"],
+} as const
+
 // ----- JSON Schema for Gemini's structured-output mode (Call 2) -----
 
 export const ROOM_JSON_SCHEMA = {
