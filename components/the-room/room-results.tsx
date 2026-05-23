@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 
+import { AdCopyGenerator } from "@/components/the-room/ad-copy-generator"
 import { AskTheRoom } from "@/components/the-room/ask-the-room"
 import { CopyReportButton } from "@/components/the-room/copy-report-button"
 import {
   PersonaCards,
   type PersonaOverride,
 } from "@/components/the-room/persona-cards"
+import { PersonaModal } from "@/components/the-room/persona-modal"
 import { SearchSuggestions } from "@/components/the-room/search-suggestions"
 import { SharperAngles } from "@/components/the-room/sharper-angles"
 import { SignalCharts } from "@/components/the-room/signal-charts"
@@ -19,7 +21,11 @@ import {
 import { VoicesGrid } from "@/components/the-room/voices-grid"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import type { RescoreResponse, RoomResponse } from "@/lib/schemas/room-schema"
+import type {
+  Persona,
+  RescoreResponse,
+  RoomResponse,
+} from "@/lib/schemas/room-schema"
 
 const HIGHLIGHT_MS = 1800
 
@@ -44,6 +50,9 @@ export function RoomResults({
   const [activeRescore, setActiveRescore] = useState<RescoreState | null>(null)
   const [rescoringAngle, setRescoringAngle] = useState<string | null>(null)
   const [rescoreError, setRescoreError] = useState<string | null>(null)
+
+  // Persona deep-dive modal — currently-open persona, or null when closed.
+  const [openPersona, setOpenPersona] = useState<Persona | null>(null)
 
   function jumpToVoice(voiceIndex: number) {
     const el = document.getElementById(`voice-${voiceIndex}`)
@@ -181,6 +190,7 @@ export function RoomResults({
         <PersonaCards
           personas={result.personas}
           overrides={activeRescore?.overrides}
+          onSelect={(p) => setOpenPersona(p)}
         />
       </section>
 
@@ -200,6 +210,14 @@ export function RoomResults({
         />
       </section>
 
+      <AdCopyGenerator
+        idea={idea}
+        audience={audience}
+        verdict={result.verdict}
+        personas={result.personas}
+        sharperAngles={result.sharper_angles}
+      />
+
       <AskTheRoom
         key={result.personas.map((p) => p.name).join("|")}
         personas={result.personas}
@@ -208,6 +226,13 @@ export function RoomResults({
       />
 
       <SearchSuggestions data={result.groundingMetadata} />
+
+      <PersonaModal
+        persona={openPersona}
+        voices={result.voices}
+        open={openPersona !== null}
+        onClose={() => setOpenPersona(null)}
+      />
     </div>
   )
 }

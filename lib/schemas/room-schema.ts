@@ -178,6 +178,74 @@ export const ASK_JSON_SCHEMA = {
   required: ["replies"],
 } as const
 
+// ----- Generate ad copy -----
+
+export const AdCopyRequestSchema = z.object({
+  idea: z.string().max(2000),
+  audience: z.string().max(2000),
+  verdict: z.object({
+    headline: z.string(),
+    summary: z.string(),
+  }),
+  personas: z.array(PersonaSchema).min(1).max(3),
+  sharper_angles: z.array(SharperAngleSchema).min(1).max(5),
+})
+export type AdCopyRequest = z.infer<typeof AdCopyRequestSchema>
+
+export const AdVariantSchema = z.object({
+  platform: z.string(),
+  headline: z.string(),
+  body: z.string(),
+  cta: z.string(),
+  why_it_works: z.string(),
+})
+export type AdVariant = z.infer<typeof AdVariantSchema>
+
+export const AdCopyResponseSchema = z.object({
+  variants: z.array(AdVariantSchema).min(1).max(5),
+})
+export type AdCopyResponse = z.infer<typeof AdCopyResponseSchema>
+
+export const ADCOPY_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    variants: {
+      type: "array",
+      description: "3 ready-to-paste ad variants, one per platform/style.",
+      items: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            description:
+              "e.g. 'Meta (Instagram/Facebook feed)', 'TikTok script', 'Google Search ad', 'LinkedIn sponsored post', 'Email subject + preview'.",
+          },
+          headline: {
+            type: "string",
+            description: "Punchy hook. Platform-appropriate length.",
+          },
+          body: {
+            type: "string",
+            description:
+              "Main copy. Platform-appropriate length. Uses audience language from the research where possible.",
+          },
+          cta: {
+            type: "string",
+            description: "Short call-to-action button or line.",
+          },
+          why_it_works: {
+            type: "string",
+            description:
+              "One sentence tying the copy back to a persona reaction or a verbatim phrase the audience uses.",
+          },
+        },
+        required: ["platform", "headline", "body", "cta", "why_it_works"],
+      },
+    },
+  },
+  required: ["variants"],
+} as const
+
 // ----- Re-score with a new angle -----
 
 export const RescoreRequestSchema = z.object({

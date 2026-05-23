@@ -4,6 +4,10 @@ import { useState } from "react"
 
 import { LiveSearchLoader } from "@/components/the-room/live-search-loader"
 import { RoomResults } from "@/components/the-room/room-results"
+import {
+  emitRunsChanged,
+  RunsHistory,
+} from "@/components/the-room/runs-history"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { saveRun, type SavedRun } from "@/lib/runs-storage"
 import type { RoomResponse } from "@/lib/schemas/room-schema"
 
 const IDEA_PLACEHOLDER =
@@ -54,9 +59,13 @@ export default function Page() {
         return
       }
 
-      setResult(data as RoomResponse)
+      const room = data as RoomResponse
+      setResult(room)
       setSubmittedIdea(idea)
       setSubmittedAudience(audience)
+      // Persist to localStorage so the user can come back to this run later.
+      saveRun({ idea, audience, result: room })
+      emitRunsChanged()
     } catch {
       setError(
         "Couldn't reach the server. Check your internet connection and try again."
@@ -66,15 +75,36 @@ export default function Page() {
     }
   }
 
+  function handleRestore(run: SavedRun) {
+    setResult(run.result)
+    setSubmittedIdea(run.idea)
+    setSubmittedAudience(run.audience)
+    setIdea(run.idea)
+    setAudience(run.audience)
+    setError(null)
+    // Smooth-scroll to the results so the user sees the change.
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }, 0)
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
-      <header className="mb-10 text-center sm:mb-14">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-          THE ROOM
-        </h1>
-        <p className="mt-3 text-base text-muted-foreground sm:text-lg">
-          Reality check for marketing ideas, grounded in real internet signal.
-        </p>
+      <header className="mb-10 sm:mb-14">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+              THE ROOM
+            </h1>
+            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+              Reality check for marketing ideas, grounded in real internet
+              signal.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <RunsHistory onRestore={handleRestore} />
+          </div>
+        </div>
       </header>
 
       <Card className="mb-10">

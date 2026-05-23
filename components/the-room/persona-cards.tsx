@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Persona, PersonaScores } from "@/lib/schemas/room-schema"
 
@@ -56,10 +58,13 @@ export type PersonaOverride = {
 export function PersonaCards({
   personas,
   overrides,
+  onSelect,
 }: {
   personas: Persona[]
   // Keyed by persona.name when rescore data exists.
   overrides?: Record<string, PersonaOverride>
+  // If provided, persona cards become clickable and call this when chosen.
+  onSelect?: (persona: Persona) => void
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -68,8 +73,29 @@ export function PersonaCards({
         const override = overrides?.[p.name]
         const scores = override?.scores ?? p.scores
         const reaction = override?.gut_reaction ?? p.gut_reaction
+        const clickable = !!onSelect
         return (
-          <Card key={p.name} className={style.border}>
+          <Card
+            key={p.name}
+            role={clickable ? "button" : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? () => onSelect?.(p) : undefined}
+            onKeyDown={
+              clickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      onSelect?.(p)
+                    }
+                  }
+                : undefined
+            }
+            className={`${style.border} ${
+              clickable
+                ? "cursor-pointer transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+                : ""
+            }`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-base leading-tight">
@@ -123,6 +149,12 @@ export function PersonaCards({
                   <span className="font-medium">Why it moved:</span>{" "}
                   {override.what_changed}
                 </p>
+              )}
+
+              {clickable && !override && (
+                <div className="text-[10px] tracking-wider text-muted-foreground/70 uppercase">
+                  Click for full profile →
+                </div>
               )}
             </CardContent>
           </Card>
