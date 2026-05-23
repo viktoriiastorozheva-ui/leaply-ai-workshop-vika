@@ -178,6 +178,90 @@ export const ASK_JSON_SCHEMA = {
   required: ["replies"],
 } as const
 
+// ----- Re-score with a new angle -----
+
+export const RescoreRequestSchema = z.object({
+  original_idea: z.string().max(2000),
+  audience: z.string().max(2000),
+  new_angle: z
+    .string()
+    .min(3, "Angle is too short.")
+    .max(500, "Angle is too long (max 500 characters)."),
+  personas: z.array(PersonaSchema).min(1).max(3),
+})
+export type RescoreRequest = z.infer<typeof RescoreRequestSchema>
+
+export const RescoredPersonaSchema = z.object({
+  name: z.string(),
+  color: PersonaColor,
+  new_scores: PersonaScoresSchema,
+  new_gut_reaction: z.string(),
+  what_changed: z.string(),
+})
+export type RescoredPersona = z.infer<typeof RescoredPersonaSchema>
+
+export const RescoreResponseSchema = z.object({
+  rescored: z.array(RescoredPersonaSchema).min(1),
+})
+export type RescoreResponse = z.infer<typeof RescoreResponseSchema>
+
+export const RESCORE_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    rescored: {
+      type: "array",
+      description:
+        "One updated entry per persona, in the same order they were provided.",
+      items: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description:
+              "Must exactly match the persona's name from the input.",
+          },
+          color: { type: "string", enum: ["green", "yellow", "red"] },
+          new_scores: {
+            type: "object",
+            properties: {
+              buy: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
+              trust: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
+              share: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
+            },
+            required: ["buy", "trust", "share"],
+          },
+          new_gut_reaction: {
+            type: "string",
+            description: "1-2 sentence reaction to the NEW angle, in voice.",
+          },
+          what_changed: {
+            type: "string",
+            description:
+              "One sentence on what moved the scores up or down vs the original idea.",
+          },
+        },
+        required: [
+          "name",
+          "color",
+          "new_scores",
+          "new_gut_reaction",
+          "what_changed",
+        ],
+      },
+    },
+  },
+  required: ["rescored"],
+} as const
+
 // ----- JSON Schema for Gemini's structured-output mode (Call 2) -----
 
 export const ROOM_JSON_SCHEMA = {

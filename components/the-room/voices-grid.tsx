@@ -91,6 +91,13 @@ export function VoicesGrid({
   voices: Voice[]
   highlightedIndex: number | null
 }) {
+  if (voices.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+        No voices in this sentiment.
+      </p>
+    )
+  }
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {voices.map((v) => {
