@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { LiveSearchLoader } from "@/components/the-room/live-search-loader"
 import { RoomResults } from "@/components/the-room/room-results"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -120,11 +121,8 @@ export default function Page() {
       </Card>
 
       {loading && (
-        <div className="my-10 flex flex-col items-center justify-center gap-3 text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-          <p className="text-sm text-muted-foreground">
-            The room is researching the internet… (this takes 30–60s)
-          </p>
+        <div className="my-10">
+          <LiveSearchLoader />
         </div>
       )}
 

@@ -57,17 +57,10 @@ export function PersonaCards({ personas }: { personas: Persona[] }) {
                 </p>
               </div>
 
-              <div className="flex items-center justify-around border-y py-3">
+              <div className="flex items-center justify-around border-t pt-3">
                 <ScorePill label="Buy" value={p.scores.buy} />
                 <ScorePill label="Trust" value={p.scores.trust} />
                 <ScorePill label="Share" value={p.scores.share} />
-              </div>
-
-              <div>
-                <div className="mb-1 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                  What would make me click
-                </div>
-                <p className="leading-relaxed">{p.what_would_make_me_click}</p>
               </div>
             </CardContent>
           </Card>

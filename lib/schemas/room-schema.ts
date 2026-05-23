@@ -29,42 +29,45 @@ export const Sentiment = z.enum([
 ])
 export type Sentiment = z.infer<typeof Sentiment>
 
-export const Frequency = z.enum(["very common", "common", "emerging", "rare"])
-export type Frequency = z.infer<typeof Frequency>
-
-export const TrendingVelocity = z.enum([
-  "growing",
-  "stable",
-  "fading",
-  "unclear",
-])
-export type TrendingVelocity = z.infer<typeof TrendingVelocity>
+export const Trending = z.enum(["growing", "stable", "fading", "unclear"])
+export type Trending = z.infer<typeof Trending>
 
 // ----- Model output blocks -----
 
-export const RealityCheckSchema = z.object({
-  verdict: z.string(),
+export const VerdictSchema = z.object({
   reality_score: z.number().int().min(1).max(10),
-  trending_velocity: TrendingVelocity,
+  trending: Trending,
+  headline: z.string(),
   summary: z.string(),
 })
-export type RealityCheck = z.infer<typeof RealityCheckSchema>
+export type Verdict = z.infer<typeof VerdictSchema>
 
 export const VoiceSchema = z.object({
+  voice_index: z.number().int().min(1),
   quote: z.string(),
+  username: z.string(),
   source_name: z.string(),
-  source_url: z.string().optional().default(""),
+  source_url: z.string(),
+  source_verified: z.boolean(),
   sentiment: Sentiment,
+  date_relative: z.string(),
 })
 export type Voice = z.infer<typeof VoiceSchema>
 
-export const PainPatternSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  frequency: Frequency,
-  sample_phrases: z.array(z.string()).min(1),
+export const SentimentBreakdownSchema = z.object({
+  pain: z.number().int().min(0),
+  desire: z.number().int().min(0),
+  skepticism: z.number().int().min(0),
+  praise: z.number().int().min(0),
+  frustration: z.number().int().min(0),
 })
-export type PainPattern = z.infer<typeof PainPatternSchema>
+export type SentimentBreakdown = z.infer<typeof SentimentBreakdownSchema>
+
+export const SourceBreakdownItemSchema = z.object({
+  source_type: z.string(),
+  count: z.number().int().min(0),
+})
+export type SourceBreakdownItem = z.infer<typeof SourceBreakdownItemSchema>
 
 export const PersonaScoresSchema = z.object({
   buy: z.number().int().min(1).max(10),
@@ -80,46 +83,34 @@ export const PersonaSchema = z.object({
   context: z.string(),
   gut_reaction: z.string(),
   scores: PersonaScoresSchema,
-  what_would_make_me_click: z.string(),
   color: PersonaColor,
 })
 export type Persona = z.infer<typeof PersonaSchema>
 
-export const IdeaVsRealitySchema = z.object({
-  match_score: z.number().int().min(1).max(10),
-  what_hits: z.array(z.string()).min(1),
-  what_misses: z.array(z.string()).min(1),
-})
-export type IdeaVsReality = z.infer<typeof IdeaVsRealitySchema>
-
 export const SharperAngleSchema = z.object({
   angle: z.string(),
-  taps_into_pattern: z.string(),
-  audience_language_used: z.string(),
+  inspired_by_voice_index: z.number().int().min(1),
+  audience_language_borrowed: z.string(),
 })
 export type SharperAngle = z.infer<typeof SharperAngleSchema>
 
 // ----- Synthesis-call response (without groundingMetadata) -----
 
 export const SynthesisResponseSchema = z.object({
-  reality_check: RealityCheckSchema,
-  voices: z.array(VoiceSchema).min(1),
-  pain_patterns: z.array(PainPatternSchema).min(1),
+  verdict: VerdictSchema,
+  voices: z.array(VoiceSchema).min(6).max(8),
+  sentiment_breakdown: SentimentBreakdownSchema,
+  source_breakdown: z.array(SourceBreakdownItemSchema).min(1),
   personas: z.array(PersonaSchema).length(3),
-  idea_vs_reality: IdeaVsRealitySchema,
   sharper_angles: z.array(SharperAngleSchema).length(3),
 })
 export type SynthesisResponse = z.infer<typeof SynthesisResponseSchema>
 
 // ----- Grounding metadata returned alongside the synthesis -----
 
-export type GroundingChunk = {
-  web?: { uri?: string; title?: string }
-}
-
 export type GroundingMetadata = {
   searchEntryPoint: string | null
-  chunks: GroundingChunk[]
+  chunkCount: number
 }
 
 // ----- Final API response (synthesis + grounding) -----
@@ -133,99 +124,105 @@ export type RoomResponse = SynthesisResponse & {
 export const ROOM_JSON_SCHEMA = {
   type: "object",
   properties: {
-    reality_check: {
+    verdict: {
       type: "object",
       properties: {
-        verdict: {
-          type: "string",
-          description:
-            "One sentence verdict on whether this pain is real and current",
-        },
-        reality_score: {
-          type: "integer",
-          description: "1-10, based on volume and recency of online discussion",
-        },
-        trending_velocity: {
+        reality_score: { type: "integer" },
+        trending: {
           type: "string",
           enum: ["growing", "stable", "fading", "unclear"],
         },
-        summary: {
-          type: "string",
-          description: "2 sentences on what the internet is currently saying",
-        },
+        headline: { type: "string" },
+        summary: { type: "string" },
       },
-      required: ["verdict", "reality_score", "trending_velocity", "summary"],
+      required: ["reality_score", "trending", "headline", "summary"],
     },
     voices: {
       type: "array",
-      description: "5-7 real quotes pulled from the research",
+      description: "6-8 real quotes from the research",
       items: {
         type: "object",
         properties: {
-          quote: {
+          voice_index: {
+            type: "integer",
+            description: "1-based index, e.g. 1, 2, 3...",
+          },
+          quote: { type: "string" },
+          username: {
             type: "string",
-            description: "Verbatim quote from a real person online",
+            description:
+              "Anonymized handle, e.g. 'reddit_user' or actual visible username if from research",
           },
           source_name: {
             type: "string",
-            description: "e.g. 'Reddit, r/wellness' or 'Trustpilot review'",
+            description: "e.g. 'Reddit · r/wellness' or 'Trustpilot'",
           },
           source_url: {
             type: "string",
             description:
-              "Full URL if available from research, empty string if not",
+              "MUST come from VALID SOURCE URLS list, or empty string",
           },
+          source_verified: { type: "boolean" },
           sentiment: {
             type: "string",
             enum: ["pain", "desire", "skepticism", "praise", "frustration"],
           },
+          date_relative: {
+            type: "string",
+            description: "e.g. '3 days ago', '2 months ago', or 'undated'",
+          },
         },
-        required: ["quote", "source_name", "sentiment"],
+        required: [
+          "voice_index",
+          "quote",
+          "username",
+          "source_name",
+          "source_url",
+          "source_verified",
+          "sentiment",
+          "date_relative",
+        ],
       },
     },
-    pain_patterns: {
+    sentiment_breakdown: {
+      type: "object",
+      description: "Counts across all voices, must sum to total voices count",
+      properties: {
+        pain: { type: "integer" },
+        desire: { type: "integer" },
+        skepticism: { type: "integer" },
+        praise: { type: "integer" },
+        frustration: { type: "integer" },
+      },
+      required: ["pain", "desire", "skepticism", "praise", "frustration"],
+    },
+    source_breakdown: {
       type: "array",
-      description: "3-5 recurring themes from the research",
+      description: "Distribution of source types across voices",
       items: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Short label for the pattern" },
-          description: {
+          source_type: {
             type: "string",
-            description: "1-2 sentence explanation",
+            description:
+              "e.g. 'Reddit', 'Trustpilot', 'Forums', 'Reviews', 'News'",
           },
-          frequency: {
-            type: "string",
-            enum: ["very common", "common", "emerging", "rare"],
-          },
-          sample_phrases: {
-            type: "array",
-            items: { type: "string" },
-            description: "2-3 real phrases users use to describe this",
-          },
+          count: { type: "integer" },
         },
-        required: ["name", "description", "frequency", "sample_phrases"],
+        required: ["source_type", "count"],
       },
     },
     personas: {
       type: "array",
-      description:
-        "Exactly 3 composite personas from dominant segments in the research",
+      description: "Exactly 3 composite personas",
       items: {
         type: "object",
         properties: {
           name: { type: "string" },
           age: { type: "integer" },
           occupation: { type: "string" },
-          context: {
-            type: "string",
-            description:
-              "1-2 sentences on their life and prior experience with this category",
-          },
-          gut_reaction: {
-            type: "string",
-            description: "1-2 sentence reaction to the idea, in their voice",
-          },
+          context: { type: "string" },
+          gut_reaction: { type: "string" },
           scores: {
             type: "object",
             properties: {
@@ -234,10 +231,6 @@ export const ROOM_JSON_SCHEMA = {
               share: { type: "integer" },
             },
             required: ["buy", "trust", "share"],
-          },
-          what_would_make_me_click: {
-            type: "string",
-            description: "One sentence — what change would convert them",
           },
           color: { type: "string", enum: ["green", "yellow", "red"] },
         },
@@ -248,60 +241,40 @@ export const ROOM_JSON_SCHEMA = {
           "context",
           "gut_reaction",
           "scores",
-          "what_would_make_me_click",
           "color",
         ],
       },
     },
-    idea_vs_reality: {
-      type: "object",
-      properties: {
-        match_score: {
-          type: "integer",
-          description:
-            "1-10, how well the idea matches what real people are asking for",
-        },
-        what_hits: {
-          type: "array",
-          items: { type: "string" },
-          description: "2-3 strengths",
-        },
-        what_misses: {
-          type: "array",
-          items: { type: "string" },
-          description: "2-3 gaps",
-        },
-      },
-      required: ["match_score", "what_hits", "what_misses"],
-    },
     sharper_angles: {
       type: "array",
-      description:
-        "3 reframed hooks using real audience language from the research",
+      description: "Exactly 3 reframes",
       items: {
         type: "object",
         properties: {
-          angle: { type: "string", description: "The new hook/headline" },
-          taps_into_pattern: {
-            type: "string",
-            description: "Which pain pattern this resonates with",
+          angle: { type: "string" },
+          inspired_by_voice_index: {
+            type: "integer",
+            description: "Must match a voice_index from voices array",
           },
-          audience_language_used: {
+          audience_language_borrowed: {
             type: "string",
-            description:
-              "The actual phrase or feeling from research this borrows",
+            description: "Exact phrase used from the inspiring quote",
           },
         },
-        required: ["angle", "taps_into_pattern", "audience_language_used"],
+        required: [
+          "angle",
+          "inspired_by_voice_index",
+          "audience_language_borrowed",
+        ],
       },
     },
   },
   required: [
-    "reality_check",
+    "verdict",
     "voices",
-    "pain_patterns",
+    "sentiment_breakdown",
+    "source_breakdown",
     "personas",
-    "idea_vs_reality",
     "sharper_angles",
   ],
 } as const

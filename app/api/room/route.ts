@@ -6,7 +6,6 @@ import {
   ROOM_JSON_SCHEMA,
   RoomRequestSchema,
   SynthesisResponseSchema,
-  type GroundingChunk,
   type GroundingMetadata,
 } from "@/lib/schemas/room-schema"
 
@@ -15,20 +14,22 @@ export const runtime = "nodejs"
 // Vercel Hobby allows up to 60s on the Node.js runtime.
 export const maxDuration = 60
 
-// All output must be English regardless of input language — locked in the prompt.
-const SYNTHESIS_SYSTEM_PROMPT = `You are THE ROOM — a research-grounded marketing reality check tool.
+const SYNTHESIS_SYSTEM_PROMPT = `You are THE ROOM — a research-grounded marketing reality check.
 
-You will receive: (1) a user's idea, (2) target audience, (3) RESEARCH NOTES from real internet sources about this topic.
+You receive: an idea, audience, research notes from a live web search, and a list of VALID SOURCE URLS.
 
-Your job: synthesize the research into a structured analysis. EVERYTHING you output must be grounded in the research provided — do not invent quotes, do not fabricate sources. If research is thin in an area, say so honestly.
+Output ENGLISH ONLY. Strict JSON matching the provided schema.
 
-Generate THREE persona cards that are COMPOSITE PORTRAITS of the real voices found in the research. They should feel like real people from the dominant segments visible in the data — not invented archetypes. Each persona gives ONE punchy reaction (1-2 sentences max) and scores. No long conversations.
+RULES:
+- For every "voice" entry, source_url must come from the VALID SOURCE URLS list provided in the user message, or be an empty string if no valid URL maps to that quote.
+- NEVER invent URLs. NEVER fabricate Reddit threads. NEVER make up usernames.
+- Generate 3 composite personas grounded in the research (the dominant segments visible in the data), with short context and a one-line gut reaction. No multi-message conversations.
+- Sharper angles must each reference the voice_index they were inspired by.
+- All sentiment, frequencies, scores must be honestly derived from the research, not invented.`
 
-One persona must map to color "green" (enthusiastic), one to "yellow" (neutral), one to "red" (skeptical). Make the three personas distinctly different in life stage, sophistication, and attitude toward the category.
-
-OUTPUT LANGUAGE: ENGLISH ONLY. All fields, quotes, names — English. If a research quote was originally in another language, translate it to English and append "(translated)" inside the source_name.
-
-Output strict JSON matching the provided schema.`
+type ResearchChunk = {
+  web?: { uri?: string; title?: string }
+}
 
 export async function POST(req: NextRequest) {
   if (!env.GEMINI_API_KEY) {
@@ -62,27 +63,26 @@ export async function POST(req: NextRequest) {
 
   // ===== Call 1: RESEARCH with Google Search grounding =====
   let researchText = ""
-  let groundingMetadata: GroundingMetadata = {
-    searchEntryPoint: null,
-    chunks: [],
-  }
+  let validSources: { index: number; url: string; title: string }[] = []
+  let searchEntryPointHtml: string | null = null
+  let chunkCount = 0
 
   try {
     const research = await ai.models.generateContent({
       model: "gemini-3.5-flash",
-      contents: `Research the following for a marketing reality check.
+      contents: `You are a marketing researcher. Conduct LIVE WEB RESEARCH for a marketing reality check.
 
 IDEA: ${idea}
 TARGET AUDIENCE: ${audience}
 
-Find what real people are saying online about this problem space. Search Reddit, forums, review sites, articles, social media discussions. Extract:
+Search the live web — Reddit, Trustpilot, forum threads, review sites, news articles, social discussions. For this idea + audience, extract:
 
-1. Real quotes from real users (verbatim, with source URLs)
-2. Recurring pain patterns and the language people use to describe them
-3. Evidence whether this need is real, trending, or niche right now
-4. What angles are already saturated vs underserved
+1. Verbatim quotes from real users (especially with pain, desire, skepticism, frustration signals)
+2. Recurring language and phrasing the audience actually uses
+3. Whether the discussion is growing, stable, or fading right now
+4. Saturated angles vs underserved gaps in the existing conversation
 
-Be comprehensive. Search broadly. Return rich research notes with sources cited.`,
+Search broadly. Return rich research notes — include verbatim quotes and where they're from. The next step will synthesize this; be comprehensive.`,
       config: {
         tools: [{ googleSearch: {} }],
         temperature: 0.7,
@@ -91,22 +91,27 @@ Be comprehensive. Search broadly. Return rich research notes with sources cited.
 
     researchText = research.text ?? ""
 
-    // The new SDK exposes grounding info under candidates[0].groundingMetadata.
-    // Type signatures vary slightly between SDK versions, so we read defensively.
     const candidate = research.candidates?.[0] as
       | {
           groundingMetadata?: {
             searchEntryPoint?: { renderedContent?: string }
-            groundingChunks?: GroundingChunk[]
+            groundingChunks?: ResearchChunk[]
           }
         }
       | undefined
 
     const gm = candidate?.groundingMetadata
-    groundingMetadata = {
-      searchEntryPoint: gm?.searchEntryPoint?.renderedContent ?? null,
-      chunks: gm?.groundingChunks ?? [],
-    }
+    const groundingChunks = gm?.groundingChunks ?? []
+    chunkCount = groundingChunks.length
+    searchEntryPointHtml = gm?.searchEntryPoint?.renderedContent ?? null
+
+    validSources = groundingChunks
+      .map((chunk, i) => ({
+        index: i + 1, // 1-based to match voice_index convention
+        url: chunk?.web?.uri ?? "",
+        title: chunk?.web?.title ?? "",
+      }))
+      .filter((s) => s.url)
 
     if (!researchText) {
       return NextResponse.json(
@@ -126,18 +131,32 @@ Be comprehensive. Search broadly. Return rich research notes with sources cited.
     )
   }
 
-  // ===== Call 2: SYNTHESIS — strict JSON, no tools =====
+  // ===== Call 2: SYNTHESIS — strict JSON, no tools, URL-constrained =====
+  const validSourcesBlock =
+    validSources.length > 0
+      ? validSources
+          .map((s) => `[${s.index}] ${s.title || "(untitled)"} — ${s.url}`)
+          .join("\n")
+      : "(no verified URLs were returned from the live search; leave every source_url empty and set source_verified to false)"
+
+  const synthesisUserMessage = `IDEA: ${idea}
+AUDIENCE: ${audience}
+
+RESEARCH NOTES FROM LIVE WEB:
+${researchText}
+
+VALID SOURCE URLS (you may ONLY reference these — do NOT invent any other URLs):
+${validSourcesBlock}
+
+Synthesize the research into the structured output. For each voice's source_url field: pick from the VALID SOURCE URLS list above. If no valid URL exists for a quote you want to include, leave source_url as empty string and set source_verified to false. Otherwise set source_verified to true.
+
+Output strict JSON only.`
+
   let rawSynthesis = ""
   try {
     const synthesis = await ai.models.generateContent({
       model: "gemini-3.5-flash",
-      contents: `IDEA: ${idea}
-AUDIENCE: ${audience}
-
-RESEARCH NOTES:
-${researchText}
-
-Synthesize into the structured analysis.`,
+      contents: synthesisUserMessage,
       config: {
         systemInstruction: SYNTHESIS_SYSTEM_PROMPT,
         responseMimeType: "application/json",
@@ -150,9 +169,7 @@ Synthesize into the structured analysis.`,
 
     if (!rawSynthesis) {
       return NextResponse.json(
-        {
-          error: "The synthesis step returned no text. Please try again.",
-        },
+        { error: "The synthesis step returned no text. Please try again." },
         { status: 502 }
       )
     }
@@ -197,5 +214,28 @@ Synthesize into the structured analysis.`,
     )
   }
 
-  return NextResponse.json({ ...validated.data, groundingMetadata })
+  // Belt-and-suspenders: scrub any URL the model might have invented despite the
+  // explicit instruction. If a voice's source_url isn't in our validSources, we
+  // wipe it and force source_verified to false.
+  const allowedUrls = new Set(validSources.map((s) => s.url))
+  const cleaned = {
+    ...validated.data,
+    voices: validated.data.voices.map((v) => {
+      if (v.source_url && !allowedUrls.has(v.source_url)) {
+        return { ...v, source_url: "", source_verified: false }
+      }
+      // Also: if the model claimed verified but URL is empty, demote.
+      if (!v.source_url && v.source_verified) {
+        return { ...v, source_verified: false }
+      }
+      return v
+    }),
+  }
+
+  const groundingMetadata: GroundingMetadata = {
+    searchEntryPoint: searchEntryPointHtml,
+    chunkCount,
+  }
+
+  return NextResponse.json({ ...cleaned, groundingMetadata })
 }

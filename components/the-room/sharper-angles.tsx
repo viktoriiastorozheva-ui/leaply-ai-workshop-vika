@@ -27,19 +27,25 @@ function CopyButton({ text }: { text: string }) {
       onClick={handleCopy}
       className="shrink-0"
     >
-      {copied ? "Copied!" : "Copy"}
+      {copied ? "Copied!" : "📋 Copy"}
     </Button>
   )
 }
 
-export function SharperAngles({ angles }: { angles: SharperAngle[] }) {
+export function SharperAngles({
+  angles,
+  onJumpToVoice,
+}: {
+  angles: SharperAngle[]
+  onJumpToVoice: (voiceIndex: number) => void
+}) {
   return (
     <div className="flex flex-col gap-4">
       {angles.map((a, idx) => (
         <Card key={idx}>
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
                 {idx + 1}
               </div>
               <div className="flex-1 space-y-3">
@@ -51,14 +57,19 @@ export function SharperAngles({ angles }: { angles: SharperAngle[] }) {
                 </div>
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div>
-                    <span className="font-medium">Taps into:</span>{" "}
-                    {a.taps_into_pattern}
+                    <span className="font-medium">Borrows:</span>{" "}
+                    <span className="italic">
+                      &ldquo;{a.audience_language_borrowed}&rdquo;
+                    </span>
                   </div>
                   <div>
-                    <span className="font-medium">Borrows language:</span>{" "}
-                    <span className="italic">
-                      &ldquo;{a.audience_language_used}&rdquo;
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onJumpToVoice(a.inspired_by_voice_index)}
+                      className="text-primary hover:underline"
+                    >
+                      ← Inspired by voice #{a.inspired_by_voice_index}
+                    </button>
                   </div>
                 </div>
               </div>

@@ -1,8 +1,7 @@
 import type {
-  Frequency,
   PersonaColor,
   Sentiment,
-  TrendingVelocity,
+  Trending,
 } from "@/lib/schemas/room-schema"
 
 // Static Tailwind class strings — written out in full so the v4 content scanner
@@ -37,58 +36,40 @@ export const personaColorStyles: Record<
 
 export const sentimentStyles: Record<
   Sentiment,
-  { class: string; label: string }
+  { class: string; label: string; hex: string }
 > = {
   pain: {
     class: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
     label: "Pain",
+    hex: "#f43f5e", // rose-500
   },
   desire: {
     class:
       "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
     label: "Desire",
+    hex: "#10b981", // emerald-500
   },
   skepticism: {
     class:
       "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
     label: "Skepticism",
+    hex: "#f59e0b", // amber-500
   },
   praise: {
     class: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
     label: "Praise",
+    hex: "#0ea5e9", // sky-500
   },
   frustration: {
     class:
       "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
     label: "Frustration",
-  },
-}
-
-export const frequencyStyles: Record<
-  Frequency,
-  { class: string; label: string }
-> = {
-  "very common": {
-    class: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
-    label: "Very common",
-  },
-  common: {
-    class:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
-    label: "Common",
-  },
-  emerging: {
-    class: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
-    label: "Emerging",
-  },
-  rare: {
-    class: "bg-muted text-muted-foreground",
-    label: "Rare",
+    hex: "#f97316", // orange-500
   },
 }
 
 export const velocityStyles: Record<
-  TrendingVelocity,
+  Trending,
   { arrow: string; label: string; class: string }
 > = {
   growing: {
@@ -119,4 +100,31 @@ export function scoreClass(value: number) {
   if (value <= 4)
     return "bg-rose-100 text-rose-900 dark:bg-rose-900/40 dark:text-rose-100 font-semibold"
   return "bg-muted text-foreground"
+}
+
+// Avatar palette — listed in full so Tailwind picks them up.
+const AVATAR_COLORS = [
+  "bg-rose-500 text-white",
+  "bg-amber-500 text-white",
+  "bg-emerald-500 text-white",
+  "bg-sky-500 text-white",
+  "bg-indigo-500 text-white",
+  "bg-pink-500 text-white",
+  "bg-orange-500 text-white",
+  "bg-teal-500 text-white",
+] as const
+
+export function avatarColorClass(seed: string) {
+  if (!seed) return AVATAR_COLORS[0]
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) & 0xffffffff
+  }
+  const idx = Math.abs(h) % AVATAR_COLORS.length
+  return AVATAR_COLORS[idx]
+}
+
+export function avatarInitial(username: string) {
+  const cleaned = username.replace(/^@/, "").trim()
+  return (cleaned[0] ?? "?").toUpperCase()
 }
