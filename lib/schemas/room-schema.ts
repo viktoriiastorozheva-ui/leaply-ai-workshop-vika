@@ -132,7 +132,11 @@ export const ROOM_JSON_SCHEMA = {
     verdict: {
       type: "object",
       properties: {
-        reality_score: { type: "integer" },
+        reality_score: {
+          type: "integer",
+          description:
+            "Integer between 1 and 10 inclusive. NOT a percentage, NOT 0–100. 1 = niche/fading discussion, 10 = very active and trending right now.",
+        },
         trending: {
           type: "string",
           enum: ["growing", "stable", "fading", "unclear"],
@@ -231,9 +235,18 @@ export const ROOM_JSON_SCHEMA = {
           scores: {
             type: "object",
             properties: {
-              buy: { type: "integer" },
-              trust: { type: "integer" },
-              share: { type: "integer" },
+              buy: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
+              trust: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
+              share: {
+                type: "integer",
+                description: "Integer between 1 and 10 inclusive.",
+              },
             },
             required: ["buy", "trust", "share"],
           },

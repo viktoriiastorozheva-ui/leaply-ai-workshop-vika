@@ -31,6 +31,60 @@ type ResearchChunk = {
   web?: { uri?: string; title?: string }
 }
 
+// Defensive normalizer: the model occasionally returns scores outside 1–10
+// (e.g. 70 when an audience like "women 40-70" is in the prompt) or skips
+// voice_index. Rather than fail validation on that, we round + clamp into
+// range and renumber voices sequentially before the schema runs.
+function clamp(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min
+  const r = Math.round(n)
+  if (r < min) return min
+  if (r > max) return max
+  return r
+}
+
+function normalizeModelOutput(input: unknown): unknown {
+  if (!input || typeof input !== "object") return input
+  const o = input as Record<string, unknown>
+
+  // verdict.reality_score → [1, 10]
+  if (o.verdict && typeof o.verdict === "object") {
+    const v = o.verdict as Record<string, unknown>
+    if (typeof v.reality_score === "number") {
+      v.reality_score = clamp(v.reality_score, 1, 10)
+    }
+  }
+
+  // Renumber voices 1..N and clamp voice_index defensively.
+  if (Array.isArray(o.voices)) {
+    o.voices.forEach((v, i) => {
+      if (v && typeof v === "object") {
+        const voice = v as Record<string, unknown>
+        voice.voice_index = i + 1
+      }
+    })
+  }
+
+  // personas[].scores.{buy,trust,share} → [1, 10]
+  if (Array.isArray(o.personas)) {
+    for (const p of o.personas) {
+      if (p && typeof p === "object") {
+        const persona = p as Record<string, unknown>
+        if (persona.scores && typeof persona.scores === "object") {
+          const s = persona.scores as Record<string, unknown>
+          for (const key of ["buy", "trust", "share"] as const) {
+            if (typeof s[key] === "number") {
+              s[key] = clamp(s[key] as number, 1, 10)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return o
+}
+
 export async function POST(req: NextRequest) {
   if (!env.GEMINI_API_KEY) {
     return NextResponse.json(
@@ -199,7 +253,8 @@ Output strict JSON only.`
     )
   }
 
-  const validated = SynthesisResponseSchema.safeParse(parsedJson)
+  const normalized = normalizeModelOutput(parsedJson)
+  const validated = SynthesisResponseSchema.safeParse(normalized)
   if (!validated.success) {
     const issues = validated.error.issues.slice(0, 5).map((i) => ({
       path: i.path.join("."),
