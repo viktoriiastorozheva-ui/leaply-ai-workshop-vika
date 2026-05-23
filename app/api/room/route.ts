@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenAI } from "@google/genai"
 
 import { env } from "@/lib/env"
+import { sanityCheck } from "@/lib/sanity-check"
 import {
   ROOM_JSON_SCHEMA,
   RoomRequestSchema,
@@ -112,6 +113,27 @@ export async function POST(req: NextRequest) {
     )
   }
   const { idea, audience } = parsed.data
+
+  // Preflight: bail early on impossible / contradictory briefs (e.g.
+  // "menopause" + "women 10 years old"). Without this, the model will
+  // happily confabulate a coherent-sounding verdict for nonsense input —
+  // which destroys credibility the moment a judge tests an edge case.
+  // Fail-open: if the sanity gate errors, we let the request through.
+  const sanity = await sanityCheck({
+    apiKey: env.GEMINI_API_KEY,
+    idea,
+    audience,
+  })
+  if (sanity && !sanity.coherent) {
+    return NextResponse.json(
+      {
+        error: sanity.reason,
+        suggested_fix: sanity.suggested_fix,
+        kind: "sanity_check",
+      },
+      { status: 422 }
+    )
+  }
 
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY })
 

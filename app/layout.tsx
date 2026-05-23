@@ -1,13 +1,20 @@
 import type { Metadata } from "next"
-import { Geist_Mono, Figtree } from "next/font/google"
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
-const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
-const fontMono = Geist_Mono({
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-heading",
+})
+
+const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
@@ -30,9 +37,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(
         "antialiased",
+        inter.variable,
+        instrumentSerif.variable,
         fontMono.variable,
-        "font-sans",
-        figtree.variable
+        "font-sans"
       )}
     >
       <body>

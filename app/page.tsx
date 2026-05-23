@@ -28,11 +28,16 @@ const IDEA_PLACEHOLDER =
   'New Instagram ad — woman notices sock marks on her ankles, voiceover says "Your body is asking for help. Take the 3-min lymph test."'
 const AUDIENCE_PLACEHOLDER = "Women 30-45 with bloating and tiredness"
 
+type ErrorState =
+  | { kind: "generic"; message: string }
+  | { kind: "sanity_check"; message: string; suggested_fix: string }
+  | null
+
 export default function Page() {
   const [idea, setIdea] = useState("")
   const [audience, setAudience] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ErrorState>(null)
   const [result, setResult] = useState<RoomResponse | null>(null)
   // Snapshot the idea + audience that produced the current result, so that
   // follow-up "Ask the room" calls use the exact same context even if the
@@ -56,7 +61,18 @@ export default function Page() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data?.error ?? "Something went wrong. Please try again.")
+        if (data?.kind === "sanity_check" && data?.suggested_fix) {
+          setError({
+            kind: "sanity_check",
+            message: data.error ?? "That pairing doesn't quite add up.",
+            suggested_fix: data.suggested_fix,
+          })
+        } else {
+          setError({
+            kind: "generic",
+            message: data?.error ?? "Something went wrong. Please try again.",
+          })
+        }
         return
       }
 
@@ -68,9 +84,11 @@ export default function Page() {
       saveRun({ idea, audience, result: room })
       emitRunsChanged()
     } catch {
-      setError(
-        "Couldn't reach the server. Check your internet connection and try again."
-      )
+      setError({
+        kind: "generic",
+        message:
+          "Couldn't reach the server. Check your internet connection and try again.",
+      })
     } finally {
       setLoading(false)
     }
@@ -91,31 +109,41 @@ export default function Page() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
-      <header className="mb-10 sm:mb-14">
-        <div className="flex items-start justify-between gap-3">
+      <header className="aurora mb-10 sm:mb-14">
+        <div className="relative flex items-start justify-between gap-3 py-8 sm:py-14">
           <div className="flex-1 text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-              THE ROOM
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/70 px-3 py-1 text-[11px] font-medium tracking-wider text-primary uppercase backdrop-blur">
+              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+              live reality check
+            </div>
+            <h1 className="font-heading text-5xl leading-[0.95] font-normal tracking-tight sm:text-7xl">
+              The <span className="glow-primary text-primary italic">Room</span>
             </h1>
-            <p className="mt-3 text-base text-muted-foreground sm:text-lg">
-              Reality check for marketing ideas, grounded in real internet
-              signal.
+            <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+              Drop in an idea. We&apos;ll search the live web for{" "}
+              <span className="font-heading text-foreground italic">
+                real voices
+              </span>{" "}
+              and tell you what your audience actually thinks.
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="absolute top-0 right-0 flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <RunsHistory onRestore={handleRestore} />
           </div>
         </div>
       </header>
 
-      <Card className="mb-10">
+      <Card className="mb-10 border-primary/15 shadow-[0_8px_40px_-20px_color-mix(in_oklch,var(--primary)_45%,transparent)]">
         <CardHeader>
-          <CardTitle>Your idea</CardTitle>
+          <CardTitle className="font-heading text-2xl font-normal">
+            Your <span className="text-primary italic">idea</span>
+          </CardTitle>
           <CardDescription>
             Describe what you want to test, then who it&apos;s for. Hit{" "}
-            <span className="font-medium">Run the room</span> — we&apos;ll
-            search the live web for real voices and synthesize the verdict.
+            <span className="font-medium text-foreground">Run the room</span> —
+            we&apos;ll search the live web for real voices and synthesize the
+            verdict.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,9 +179,9 @@ export default function Page() {
               type="submit"
               size="lg"
               disabled={loading || !idea.trim() || !audience.trim()}
-              className="self-start"
+              className="self-start shadow-[0_8px_30px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)] transition-shadow hover:shadow-[0_12px_40px_-8px_color-mix(in_oklch,var(--primary)_80%,transparent)]"
             >
-              {loading ? "Running…" : "Run the room"}
+              {loading ? "Running…" : "Run the room →"}
             </Button>
           </form>
         </CardContent>
@@ -165,9 +193,27 @@ export default function Page() {
         </div>
       )}
 
-      {error && !loading && (
+      {error && !loading && error.kind === "sanity_check" && (
+        <Alert className="mb-10 border-primary/30 bg-primary/5">
+          <AlertDescription className="flex flex-col gap-2 text-foreground">
+            <div className="flex items-center gap-2 text-[10px] font-medium tracking-[0.2em] text-primary uppercase">
+              <span className="size-1 rounded-full bg-primary" />
+              The room paused
+            </div>
+            <div className="font-heading text-xl leading-snug font-normal italic">
+              {error.message}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Try this:</span>{" "}
+              {error.suggested_fix}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {error && !loading && error.kind === "generic" && (
         <Alert variant="destructive" className="mb-10">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
 

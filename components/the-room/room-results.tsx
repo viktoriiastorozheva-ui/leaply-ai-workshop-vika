@@ -127,8 +127,9 @@ export function RoomResults({
       <section>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold sm:text-2xl">
-              Voices from the internet
+            <h2 className="font-heading text-2xl leading-tight font-normal sm:text-3xl">
+              Voices from the{" "}
+              <span className="text-primary italic">internet</span>
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Real quotes pulled from live web research. Click any to verify.
@@ -148,8 +149,8 @@ export function RoomResults({
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold sm:text-2xl">
-          The signal breakdown
+        <h2 className="font-heading text-2xl leading-tight font-normal sm:text-3xl">
+          The <span className="text-primary italic">signal</span> breakdown
         </h2>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           How the voices split across sentiment and source.
@@ -161,7 +162,9 @@ export function RoomResults({
       </section>
 
       <section id="personas-section">
-        <h2 className="text-xl font-semibold sm:text-2xl">The room reacts</h2>
+        <h2 className="font-heading text-2xl leading-tight font-normal sm:text-3xl">
+          The <span className="text-primary italic">room</span> reacts
+        </h2>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           3 composite voices, derived from the dominant audience segments.
         </p>
@@ -196,7 +199,9 @@ export function RoomResults({
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold sm:text-2xl">Sharper angles</h2>
+        <h2 className="font-heading text-2xl leading-tight font-normal sm:text-3xl">
+          Sharper <span className="text-primary italic">angles</span>
+        </h2>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           Reframed using your audience&apos;s actual language. Hit{" "}
           <span className="font-medium">Re-score the room</span> to test any

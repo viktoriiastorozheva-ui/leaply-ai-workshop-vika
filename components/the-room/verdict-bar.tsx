@@ -6,35 +6,39 @@ export function VerdictBar({ data }: { data: Verdict }) {
   const v = velocityStyles[data.trending]
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-        {/* Reality score */}
-        <div className="flex shrink-0 items-baseline gap-1">
-          <span className="text-6xl leading-none font-bold sm:text-7xl">
-            {data.reality_score}
-          </span>
-          <span className="text-2xl font-normal text-muted-foreground">
-            /10
-          </span>
-        </div>
-
-        {/* Trending */}
-        <div
-          className={`flex shrink-0 items-center gap-2 text-base font-semibold ${v.class}`}
-        >
-          <span className="text-2xl leading-none">{v.arrow}</span>
-          <span>{v.label}</span>
+    <section className="aurora relative overflow-hidden rounded-3xl border border-primary/20 bg-card/60 p-6 backdrop-blur sm:p-10">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
+        {/* Reality score — oversized italic serif, the page's centerpiece */}
+        <div className="flex shrink-0 flex-col items-start lg:items-center">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
+            reality
+          </div>
+          <div className="flex items-baseline">
+            <span className="glow-primary font-heading text-[7rem] leading-[0.85] font-normal text-primary italic sm:text-[9rem]">
+              {data.reality_score}
+            </span>
+            <span className="font-mono text-2xl text-muted-foreground tabular-nums">
+              /10
+            </span>
+          </div>
+          <div
+            className={`mt-2 flex items-center gap-1.5 text-sm font-semibold ${v.class}`}
+          >
+            <span className="text-lg leading-none">{v.arrow}</span>
+            <span className="tracking-wide uppercase">{v.label}</span>
+          </div>
         </div>
 
         {/* Headline + summary */}
-        <div className="flex-1 lg:border-l lg:pl-6">
-          <div className="mb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            Reality check
+        <div className="flex-1 lg:border-l lg:border-primary/15 lg:pl-8">
+          <div className="mb-2 inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.2em] text-primary uppercase">
+            <span className="size-1 rounded-full bg-primary" />
+            verdict
           </div>
-          <h2 className="text-xl leading-tight font-bold sm:text-2xl">
+          <h2 className="font-heading text-2xl leading-[1.1] font-normal sm:text-4xl">
             {data.headline}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
             {data.summary}
           </p>
         </div>
