@@ -10,6 +10,7 @@ import {
   type PersonaOverride,
 } from "@/components/the-room/persona-cards"
 import { PersonaModal } from "@/components/the-room/persona-modal"
+import { RisksAudit } from "@/components/the-room/risks-audit"
 import { SearchSuggestions } from "@/components/the-room/search-suggestions"
 import { SharperAngles } from "@/components/the-room/sharper-angles"
 import { SignalCharts } from "@/components/the-room/signal-charts"
@@ -209,6 +210,13 @@ export function RoomResults({
           activeRescoreAngle={activeRescore?.angle ?? null}
         />
       </section>
+
+      <RisksAudit
+        idea={idea}
+        audience={audience}
+        verdict={result.verdict}
+        voices={result.voices}
+      />
 
       <AdCopyGenerator
         idea={idea}

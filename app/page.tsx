@@ -8,6 +8,7 @@ import {
   emitRunsChanged,
   RunsHistory,
 } from "@/components/the-room/runs-history"
+import { ThemeToggle } from "@/components/the-room/theme-toggle"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -101,7 +102,8 @@ export default function Page() {
               signal.
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
             <RunsHistory onRestore={handleRestore} />
           </div>
         </div>

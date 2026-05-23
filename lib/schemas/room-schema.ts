@@ -178,6 +178,107 @@ export const ASK_JSON_SCHEMA = {
   required: ["replies"],
 } as const
 
+// ----- Risks & red flags audit -----
+
+export const RiskCategory = z.enum([
+  "legal",
+  "audience-harm",
+  "credibility",
+  "brand-safety",
+  "cultural",
+  "other",
+])
+export type RiskCategory = z.infer<typeof RiskCategory>
+
+export const RiskOverall = z.enum(["clear", "minor-concerns", "major-concerns"])
+export type RiskOverall = z.infer<typeof RiskOverall>
+
+export const RiskItemSchema = z.object({
+  category: RiskCategory,
+  severity: z.number().int().min(1).max(5),
+  issue: z.string(),
+  mitigation: z.string(),
+})
+export type RiskItem = z.infer<typeof RiskItemSchema>
+
+export const RisksRequestSchema = z.object({
+  idea: z.string().max(2000),
+  audience: z.string().max(2000),
+  verdict: z.object({
+    headline: z.string(),
+    summary: z.string(),
+  }),
+  voices: z
+    .array(
+      z.object({
+        quote: z.string(),
+        sentiment: Sentiment,
+      })
+    )
+    .min(1)
+    .max(12),
+})
+export type RisksRequest = z.infer<typeof RisksRequestSchema>
+
+export const RisksResponseSchema = z.object({
+  overall: RiskOverall,
+  overall_summary: z.string(),
+  risks: z.array(RiskItemSchema).min(0).max(8),
+})
+export type RisksResponse = z.infer<typeof RisksResponseSchema>
+
+export const RISKS_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    overall: {
+      type: "string",
+      enum: ["clear", "minor-concerns", "major-concerns"],
+      description:
+        "Overall risk verdict: clear (ship as-is), minor-concerns (a few small fixes recommended), major-concerns (rethink before shipping).",
+    },
+    overall_summary: {
+      type: "string",
+      description: "1-2 sentence summary tying the overall verdict together.",
+    },
+    risks: {
+      type: "array",
+      description:
+        "0-8 concrete risk items. Empty array is valid if the idea is genuinely clean. Do not fabricate risks for the sake of filling the list.",
+      items: {
+        type: "object",
+        properties: {
+          category: {
+            type: "string",
+            enum: [
+              "legal",
+              "audience-harm",
+              "credibility",
+              "brand-safety",
+              "cultural",
+              "other",
+            ],
+          },
+          severity: {
+            type: "integer",
+            description:
+              "Integer 1-5 inclusive. 1 = minor nit, 3 = worth fixing, 5 = blocker.",
+          },
+          issue: {
+            type: "string",
+            description: "What specifically is risky. Concrete and short.",
+          },
+          mitigation: {
+            type: "string",
+            description: "One sentence on how to address it.",
+          },
+        },
+        required: ["category", "severity", "issue", "mitigation"],
+      },
+    },
+  },
+  required: ["overall", "overall_summary", "risks"],
+} as const
+
 // ----- Generate ad copy -----
 
 export const AdCopyRequestSchema = z.object({
