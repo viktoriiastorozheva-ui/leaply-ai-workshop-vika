@@ -201,14 +201,23 @@ Output strict JSON only.`
 
   const validated = SynthesisResponseSchema.safeParse(parsedJson)
   if (!validated.success) {
-    console.error(
-      "THE ROOM synthesis schema mismatch:",
-      validated.error.flatten()
-    )
+    const issues = validated.error.issues.slice(0, 5).map((i) => ({
+      path: i.path.join("."),
+      message: i.message,
+    }))
+    console.error("THE ROOM synthesis schema mismatch:", {
+      issues: validated.error.issues,
+      rawPreview:
+        typeof rawSynthesis === "string"
+          ? rawSynthesis.slice(0, 800)
+          : rawSynthesis,
+    })
+    const summary = issues
+      .map((i) => `${i.path || "(root)"}: ${i.message}`)
+      .join("; ")
     return NextResponse.json(
       {
-        error:
-          "The model returned data in an unexpected shape. Please try again.",
+        error: `The model returned data in an unexpected shape. Likely cause: ${summary}. Try a more specific idea + audience.`,
       },
       { status: 502 }
     )

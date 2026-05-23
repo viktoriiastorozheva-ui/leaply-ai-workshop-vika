@@ -96,13 +96,18 @@ export type SharperAngle = z.infer<typeof SharperAngleSchema>
 
 // ----- Synthesis-call response (without groundingMetadata) -----
 
+// Loosened on purpose. The model targets 6–8 voices, 3 personas, 3 sharper
+// angles (and the prompt asks for those exact counts), but on thin inputs it
+// sometimes returns fewer. We'd rather render 4 voices than reject the whole
+// payload, so we accept reasonable ranges here and let the UI display what we
+// actually got.
 export const SynthesisResponseSchema = z.object({
   verdict: VerdictSchema,
-  voices: z.array(VoiceSchema).min(6).max(8),
+  voices: z.array(VoiceSchema).min(1).max(12),
   sentiment_breakdown: SentimentBreakdownSchema,
-  source_breakdown: z.array(SourceBreakdownItemSchema).min(1),
-  personas: z.array(PersonaSchema).length(3),
-  sharper_angles: z.array(SharperAngleSchema).length(3),
+  source_breakdown: z.array(SourceBreakdownItemSchema),
+  personas: z.array(PersonaSchema).min(1).max(3),
+  sharper_angles: z.array(SharperAngleSchema).min(1).max(5),
 })
 export type SynthesisResponse = z.infer<typeof SynthesisResponseSchema>
 
