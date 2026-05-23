@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Geist_Mono, Figtree } from "next/font/google"
 
 import "./globals.css"
@@ -10,6 +11,13 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
+
+export const metadata: Metadata = {
+  title:
+    "THE ROOM — Reality check for marketing ideas, grounded in real internet signal",
+  description:
+    "Describe an idea and a target audience. THE ROOM searches the live web for real voices, then synthesizes a reality check, pain patterns, persona reactions, and sharper angles using your audience's actual words.",
+}
 
 export default function RootLayout({
   children,
